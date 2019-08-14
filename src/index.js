@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls";
+import { FirstPersonControls } from "three/examples/jsm/controls/FirstPersonControls";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 
 // declare variables
@@ -11,17 +11,12 @@ var view_size = {width: window.innerWidth, height: window.innerHeight};
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
 
+
 function loadHouseModel(model_path){
     let model_file_extension = model_path.split('.').pop();
-    switch (model_file_extension) {
-        case 'gltf':
-            loader = new GLTFLoader();
-            break;
-        case 'dae':
-            loader = new ColladaLoader();
-            break;
-        default:
-            break;
+    switch (model_file_extension){
+        case 'gltf': loader = new GLTFLoader(); break;
+        case 'dae': loader = new ColladaLoader(); break;
     }
     loadModel(model_path, loader);
 }
@@ -78,12 +73,24 @@ function addCube(x, y,z){
     scene.add( cube );
 }
 
+function contextMenu(event) {
+    event.preventDefault();
+}
+
+function onMouseDown(event) {
+}
+
 function mouseMove(event){
-    let scale = 1;
-    mouse.x = - ( event.clientX / renderer.domElement.clientWidth ) * 2 + 1;
-    mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
-    camera.rotation.x = mouse.y / scale;
-    camera.rotation.y = mouse.x / scale;
+}
+
+function onMouseUp(event){
+}
+
+function registerEvent(){
+    document.addEventListener( "contextmenu", contextMenu, false );
+    document.addEventListener( "mousedown", onMouseDown, false );
+    document.addEventListener( "mousemove", mouseMove, false );
+    document.addEventListener( "mouseup", onMouseUp, false );
 }
 
 function init(){
@@ -105,23 +112,25 @@ function init(){
 
     var houseModel = "/apartment/scene.gltf";
     // var houseModel = "/apartment2/apartment.dae";
-    // var houseModel = "/apartment_floorplan/scene.gltf";
     loadHouseModel(houseModel);
     addLight(scene);
 
     // render
     container.appendChild(renderer.domElement);
-    // controls = new OrbitControls( camera, renderer.domElement );
-    controls = new PointerLockControls(camera);
-    controls.enabled = true;
-    scene.add(controls.getObject());
-    camera.position.set(0, 0.2, -0.2);
+    // Orbitcontrol
+    controls = new OrbitControls( camera, renderer.domElement );
+    controls.coupleCenters = true;
 
-    camera.rotation.order = "YXZ"; // this is not the default
-    document.addEventListener( "mousemove", mouseMove, false );
 
-    // when the mouse moves, call the given function
-    // document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+    // // FPS
+    // controls = new FirstPersonControls(camera);
+    // controls.enabled = true;
+    // camera.rotation.order = "YXZ"; // this is not the default
+
+    camera.position.set(0, 0.2, -0.1);
+
+    // Register event
+    registerEvent();
 
     // Execute Render
     renderer.setAnimationLoop(() => {
@@ -137,23 +146,4 @@ init();
 
 
 
-// function onDocumentMouseDown(event) {
-//     // the following line would stop any other event handler from firing
-//     // (such as the mouse's TrackballControls)
-//     // event.preventDefault();
 
-//     // update the mouse variable
-//     mouse.x = ( event.clientX / view_size.width ) * 2 - 1;
-//     mouse.y = - ( event.clientY / view_size.height ) * 2 + 1;
-
-//     raycaster.setFromCamera( mouse, camera );
-//     console.log(scene.children);
-//     var intersects = raycaster.intersectObjects( scene.children );
-//     if(intersects.length){
-//         console.log(intersects);
-//         // camera.position.set(intersects[0].point.x, 0.1, intersects[0].point.z)
-//         // console.log("camera's potions");
-//         // console.log(camera.position);
-//         // camera.updateProjectionMatrix();
-//     }
-// }
