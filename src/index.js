@@ -10,6 +10,8 @@ var view_size = {width: window.innerWidth, height: window.innerHeight};
 
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
+var intersects = {}, floor_point, lookAt_point, is_move = false;
+var plane, sphere;
 
 
 function loadHouseModel(model_path){
@@ -78,9 +80,33 @@ function contextMenu(event) {
 }
 
 function onMouseDown(event) {
+    if(intersects.length > 0){
+        var break_flag = false;
+        intersects.forEach(function(intersect){
+            if(intersect.object.uuid === plane.uuid){
+                floor_point = intersect.point;
+                is_move = true;
+            }
+            if(intersect.object.uuid === sphere.uuid){
+                lookAt_point = intersect.point;
+            }
+        });
+        if(is_move){
+            camera.position.set(floor_point.x, 0.2, floor_point.z);
+            camera.updateMatrix();
+            controls.coupleCenters = false;
+            is_move = false;
+        }
+    }
 }
 
 function mouseMove(event){
+    // calculate mouse position in normalized device coordinates
+    // (-1 to +1) for both components
+
+    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
 }
 
 function onMouseUp(event){
@@ -95,7 +121,7 @@ function registerEvent(){
 
 function init(){
     // get container
-    container = document.getElementById("3d-decor");
+    container = document.getElementById("container");
     view_size.width = window.getComputedStyle(container).width.slice(0, -2);
     view_size.height = window.getComputedStyle(container).height.slice(0, -2);
 
@@ -121,13 +147,23 @@ function init(){
     controls = new OrbitControls( camera, renderer.domElement );
     controls.coupleCenters = true;
 
-
-    // // FPS
-    // controls = new FirstPersonControls(camera);
-    // controls.enabled = true;
-    // camera.rotation.order = "YXZ"; // this is not the default
-
     camera.position.set(0, 0.2, -0.1);
+
+    // For lookAt calculation
+    var geometry = new THREE.SphereGeometry( 1.5, 32, 32 );
+    var material = new THREE.MeshBasicMaterial( {side: THREE.DoubleSide} );
+    sphere = new THREE.Mesh( geometry, material );
+    scene.add( sphere );
+
+    // For move on floor
+    var geometry = new THREE.PlaneGeometry( 1, 1, 32 );
+    var material = new THREE.MeshBasicMaterial( {transparent: true, opacity: 0, side: THREE.DoubleSide} );
+    plane = new THREE.Mesh( geometry, material );
+    plane.rotation.x = Math.PI / 2;
+    plane.updateMatrix();
+    scene.add( plane );
+
+    var raycaster = new THREE.Raycaster();
 
     // Register event
     registerEvent();
@@ -137,6 +173,10 @@ function init(){
         if (model) {
             // model.rotation.y += 0.02;
         }
+        raycaster.setFromCamera( mouse, camera );
+        intersects = raycaster.intersectObjects( scene.children );
+
+        // console.log(intersects);
         renderer.render(scene, camera);
     });
 }

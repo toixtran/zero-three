@@ -35,8 +35,8 @@ body {
 }
 
 .container {
-  display: grid;
-  grid-template-columns: 2fr 6fr;
+  /*display: grid;*/
+  /*grid-template-columns: 2fr 6fr;*/
   width: 100%;
   height: 100%;
 }
