@@ -2,9 +2,9 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 
+const PERSON_HEIGHT = 0.2;
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
-var intersects = {}, floor_point, lookAt_point, is_move = false;
 
 let canvas = document.getElementById("myCanvas");
 let camera, scene, renderer, controls;
@@ -16,7 +16,7 @@ function init() {
     scene.background = new THREE.Color( 0xd0d0d0 );
 
     camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 1000 );
-    camera.position.set(0, 0.2, 0);
+    camera.position.set(0, PERSON_HEIGHT, 0);
     camera.lookAt( new THREE.Vector3( 0.3 , 0.1 , 0.3 ) );
 
     window.addEventListener("resize", function(){
@@ -93,11 +93,27 @@ let initControls = function(){
     renderer.domElement.addEventListener('mouseup', onMouseUp);
 }
 
+var intersects = {}, floor_point, lookAt_point, is_move = false;
 function onMouseDown(e) {
     renderer.domElement.addEventListener('mousemove', onMouseMove);
+    console.log(intersects);
+    if(intersects.length > 0){
+        intersects.forEach(function(intersect){
+            if(intersect.object.uuid === plane.uuid){
+                floor_point = intersect.point;
+                is_move = true;
+            }
+        });
+    }
 }
 function onMouseUp(e) {
     renderer.domElement.removeEventListener('mousemove', onMouseMove);
+    // If just click to floor Then move
+    if(is_move){
+        camera.position.set(floor_point.x, PERSON_HEIGHT, floor_point.z);
+        camera.updateMatrix();
+        is_move = false;
+    }
 }
 
 var euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
@@ -114,6 +130,9 @@ function onMouseMove(e){
     euler.x = Math.max( - PI_2, Math.min( PI_2, euler.x ) );
 
     camera.quaternion.setFromEuler( euler );
+
+    // reset is_move for detection mouse click or mouse pan
+    is_move = false;
 }
 
 
@@ -132,6 +151,9 @@ let initLights = function(){
 }
 
 function animate( time ) {
+    raycaster.setFromCamera( mouse, camera );
+    intersects = raycaster.intersectObjects( scene.children );
+
     renderer.render( scene, camera );
     requestAnimationFrame( animate );
 }
