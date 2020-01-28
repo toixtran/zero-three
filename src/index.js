@@ -2,27 +2,22 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 
-let canvas = document.getElementById("myCanvas");
-let camera, scene, renderer, controls, clock, loader, model;
-
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
 var intersects = {}, floor_point, lookAt_point, is_move = false;
-var plane, sphere;
 
-
+let canvas = document.getElementById("myCanvas");
+let camera, scene, renderer, controls;
 function init() {
     renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true } );
     renderer.setSize( window.innerWidth, window.innerHeight );
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color( 0xd0d0d0 );
-    
-    camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 1000 );
-    camera.position.set( 0.3 , 0.3 , 0.3 );
-    camera.lookAt( new THREE.Vector3( 0.3 , 0.1 , 0.3 ) );
 
-    clock = new THREE.Clock();
+    camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 1000 );
+    camera.position.set(0, 0.2, 0);
+    camera.lookAt( new THREE.Vector3( 0.3 , 0.1 , 0.3 ) );
 
     window.addEventListener("resize", function(){
         renderer.setSize( window.innerWidth, window.innerHeight );
@@ -35,6 +30,8 @@ function init() {
     createScene();
 }
 
+let loader, model;
+var plane, sphere;
 // Scene
 let createScene = function(){
     let houseModel = "/apartment/scene.gltf";
@@ -42,7 +39,7 @@ let createScene = function(){
     loadHouseModel(houseModel);
 
     // Floor
-    var geometry = new THREE.PlaneGeometry( 1, 1, 32 );
+    var geometry = new THREE.PlaneGeometry( 1, 1, 1 );
     var material = new THREE.MeshBasicMaterial( {transparent: true, opacity: 0, side: THREE.DoubleSide} );
     plane = new THREE.Mesh( geometry, material );
     plane.rotation.x = Math.PI / 2;
@@ -72,7 +69,7 @@ function loadModel(model_path, loader){
             let maxAxis = Math.max(size.x, size.y, size.z);
 
             // scale model
-            model.scale.multiplyScalar(3.0 / maxAxis);
+            model.scale.multiplyScalar(1.0 / maxAxis);
             bbox.setFromObject(model);
             bbox.getCenter(cent);
             bbox.getSize(size);
@@ -92,28 +89,31 @@ function loadModel(model_path, loader){
 // Controll
 let initControls = function(){
     camera.rotation.order = "YXZ";
-    renderer.domElement.addEventListener('mousedown', downClick);
-    renderer.domElement.addEventListener('mouseup', upClick);
+    renderer.domElement.addEventListener('mousedown', onMouseDown);
+    renderer.domElement.addEventListener('mouseup', onMouseUp);
 }
 
-function downClick(e) {
-  renderer.domElement.addEventListener('mousemove', moveClick);
+function onMouseDown(e) {
+    renderer.domElement.addEventListener('mousemove', onMouseMove);
 }
-function upClick(e) {
-  renderer.domElement.removeEventListener('mousemove', moveClick);
+function onMouseUp(e) {
+    renderer.domElement.removeEventListener('mousemove', onMouseMove);
 }
 
-function moveClick(e){
-    const movementY = (-e.movementY * Math.PI * 1) / 180;
-    const movementX = (-e.movementX * Math.PI * 1) / 180;
+var euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
+var PI_2 = Math.PI / 2;
+function onMouseMove(e){
+    var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+    var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
 
-    camera.rotation.x +=movementY;
-    camera.rotation.y += movementX;
-    renderer.render(scene, camera);
+    euler.setFromQuaternion( camera.quaternion );
 
-    // let mouse = scope.mouse;
-    // mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    // mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    euler.y -= movementX * 0.004;
+    euler.x -= movementY * 0.004;
+
+    euler.x = Math.max( - PI_2, Math.min( PI_2, euler.x ) );
+
+    camera.quaternion.setFromEuler( euler );
 }
 
 
@@ -132,8 +132,6 @@ let initLights = function(){
 }
 
 function animate( time ) {
-    let delta = clock.getDelta();
-    
     renderer.render( scene, camera );
     requestAnimationFrame( animate );
 }
